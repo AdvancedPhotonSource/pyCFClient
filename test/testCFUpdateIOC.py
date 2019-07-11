@@ -157,8 +157,8 @@ class Test(unittest.TestCase):
         the channel is removed
         in all cases the existing unaffected* property and tag should remain with the channel               
         '''
-        unaffectedProperty = {u'name':u'unaffectedProperty', u'owner':self.owner, u'value':u'unchanged'}
-        unaffectedTag = {u'name':u'unaffectedTag', u'owner':self.owner}
+        unaffectedProperty = {u'name':u'unaffectedProperty', u'owner':self.owner, u'value':u'unchanged', "channels": []}
+        unaffectedTag = {u'name':u'unaffectedTag', u'owner':self.owner, "channels": []}
         # create default client
         client = ChannelFinderClient(BaseURL=self.baseURL, username=self.username, password=self.password)
         client.set(property=unaffectedProperty)
