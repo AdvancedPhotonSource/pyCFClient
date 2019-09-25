@@ -475,7 +475,7 @@ class ChannelFinderClient(object):
                                   verify=False,
                                   auth=self.__auth).raise_for_status()
         else:
-            raise RuntimeError('Unknown key. Have to be channelName, tagName or proprtyName')
+            raise RuntimeError('Unknown key. Have to be channelName, tagName or propertyName')
 
     def __handleMultipleDeleteParameters(self, **kwds):
         """
@@ -603,6 +603,13 @@ class ChannelFinderClient(object):
             property = kwds['property']
             r = self.__session.post(self.__baseURL + self.__propertiesResource + '/' + property[u'name'],
                                     data=JSONEncoder().encode(property),
+                                    headers=copy(self.__jsonheader),
+                                    verify=False,
+                                    auth=self.__auth)
+            r.raise_for_status()
+        elif 'properties' in kwds:
+            r = self.__session.post(self.__baseURL + self.__propertiesResource,
+                                    data=JSONEncoder().encode(kwds['properties']),
                                     headers=copy(self.__jsonheader),
                                     verify=False,
                                     auth=self.__auth)
