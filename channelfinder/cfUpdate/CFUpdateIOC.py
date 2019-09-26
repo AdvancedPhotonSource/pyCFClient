@@ -81,22 +81,29 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
         for ch in previousChannelsList:
             if pvNames != None and ch['name'] in pvNames:
                 ''''''
-                channels.append(updateChannel(ch,
-                                              owner=owner,
-                                              hostName=hostName,
-                                              iocName=iocName,
-                                              pvStatus=u'Active',
-                                              time=time))
+                if not isChannelEqual(ch, updateChannel(ch,
+                                                       owner=owner,
+                                                       hostName=hostName,
+                                                       iocName=iocName,
+                                                       pvStatus=u'',
+                                                       time=time)):
+
+                    channels.append(updateChannel(ch,
+                                                  owner=owner,
+                                                  hostName=hostName,
+                                                  iocName=iocName,
+                                                  pvStatus=u'',
+                                                  time=time))
                 pvNames.remove(ch['name'])
             elif pvNames == None or ch['name'] not in pvNames:
-                '''Orphan the channel : mark as inactive, keep the old hostName and iocName'''
+                '''Orphan the channel : mark as obsolete, keep the old hostName and iocName'''
                 oldHostName = [ prop[u'value'] for prop in ch[u'properties'] if prop[u'name'] == u'hostName'][0]
                 oldIocName = [ prop[u'value'] for prop in ch[u'properties'] if prop[u'name'] == u'iocName'][0]
                 channels.append(updateChannel(ch,
                                               owner=owner,
                                               hostName=oldHostName,
                                               iocName=oldIocName,
-                                              pvStatus=u'Inactive',
+                                              pvStatus=u'Obsolete',
                                               time=time))
     # now pvNames contains a list of pv's new on this host/ioc
     for pv in pvNames:
@@ -107,7 +114,7 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                           chOwner=owner,
                                           hostName=hostName,
                                           iocName=iocName,
-                                          pvStatus=u'Active',
+                                          pvStatus=u'',
                                           time=time))
         elif ch[0] != None:
             '''update existing channel: exists but with a different hostName and/or iocName'''
@@ -115,9 +122,10 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                           owner=owner,
                                           hostName=hostName,
                                           iocName=iocName,
-                                          pvStatus=u'Active',
+                                          pvStatus=u'',
                                           time=time))
-    client.set(channels=channels)
+    if channels:
+        client.set(channels=channels)
 
 def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactive', time=None):
     '''
@@ -167,7 +175,7 @@ def checkPropertiesExist(client, propOwner):
                 client.set(property={u'name' : propName, u'owner' : propOwner})
             except Exception as e:
                 print('Failed to create the property',propName)
-                print('CAUSE:',e.message)
+                print('CAUSE:',e)
 
 def ifNoneReturnDefault(object, default):
     '''
@@ -260,7 +268,37 @@ def getPassword(option, opt_str, value, parser):
     TODO do not show the password.
     '''
     parser.values.password = getpass()        
-            
+
+def isChannelEqual(ch1, ch2):
+    '''
+
+    :param ch1:
+    :param ch2:
+    :return:
+    '''
+    pFlag = False
+    if ch1["name"] == ch2["name"] and ch1["owner"] == ch2["owner"]:
+        if len(ch1.get("properties",[])) == 0 and len(ch2.get("properties",[])) == 0:
+            pFlag = True
+        else:
+            if len(ch1["properties"]) == len(ch2["properties"]):
+                p1_dict = dict([(p["name"],(p["owner"],p["value"])) for p in ch1["properties"]])
+                p2_dict = dict([(p["name"], (p["owner"], p["value"])) for p in ch2["properties"]])
+                if p1_dict == p2_dict:
+                    pFlag = True
+
+        if pFlag:
+            if len(ch1.get("tags",[])) == 0 and len(ch2.get("tags",[])) == 0:
+                return True
+            else:
+                if len(ch1["tags"]) == len(ch2["tags"]):
+                    t1_dict = dict([(t["name"],t["owner"]) for t in ch1["tags"]])
+                    t2_dict = dict([(t["name"], t["owner"]) for t in ch2["tags"]])
+                    if t1_dict == t2_dict:
+                        return True
+    return False
+
+
 if __name__ == '__main__':
     main()
     pass
