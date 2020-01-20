@@ -90,6 +90,19 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                               iocName=iocName,
                                               pvStatus=pvStatus,
                                               time=time))
+                if not isChannelEqual(ch, updateChannel(ch,
+                                                       owner=owner,
+                                                       hostName=hostName,
+                                                       iocName=iocName,
+                                                       pvStatus=u'',
+                                                       time=time)):
+
+                    channels.append(updateChannel(ch,
+                                                  owner=owner,
+                                                  hostName=hostName,
+                                                  iocName=iocName,
+                                                  pvStatus=u'',
+                                                  time=time))
                 pvNames.remove(ch['name'])
             elif pvNames == None or ch['name'] not in pvNames:
                 '''Orphan the channel : mark as obsolete, keep the old hostName and iocName'''
@@ -120,7 +133,8 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                           iocName=iocName,
                                           pvStatus=pvStatus,
                                           time=time))
-    client.set(channels=channels)
+    if channels:
+        client.set(channels=channels)
 
 
 def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactive', time=None):
@@ -178,7 +192,6 @@ def createChannel(chName, chOwner, hostName=None, iocName=None, pvStatus=u'Inact
         ch[u'properties'].append({u'name' : u'time', u'owner':chOwner, u'value' : time}) 
     return ch
 
-
 def checkPropertiesExist(client, propOwner):
     '''
     Checks if the properties used by dbUpdate are present if not it creates them
@@ -201,7 +214,6 @@ def ifNoneReturnDefault(object, default):
         return default
     else:
         return object
-
 
 def mainRun(opts, args):
     '''
@@ -288,6 +300,37 @@ def getPassword(option, opt_str, value, parser):
     TODO do not show the password.
     '''
     parser.values.password = getpass()        
+
+
+
+def isChannelEqual(ch1, ch2):
+    '''
+
+    :param ch1:
+    :param ch2:
+    :return:
+    '''
+    pFlag = False
+    if ch1["name"] == ch2["name"] and ch1["owner"] == ch2["owner"]:
+        if len(ch1.get("properties",[])) == 0 and len(ch2.get("properties",[])) == 0:
+            pFlag = True
+        else:
+            if len(ch1["properties"]) == len(ch2["properties"]):
+                p1_dict = dict([(p["name"],(p["owner"],p["value"])) for p in ch1["properties"]])
+                p2_dict = dict([(p["name"], (p["owner"], p["value"])) for p in ch2["properties"]])
+                if p1_dict == p2_dict:
+                    pFlag = True
+
+        if pFlag:
+            if len(ch1.get("tags",[])) == 0 and len(ch2.get("tags",[])) == 0:
+                return True
+            else:
+                if len(ch1["tags"]) == len(ch2["tags"]):
+                    t1_dict = dict([(t["name"],t["owner"]) for t in ch1["tags"]])
+                    t2_dict = dict([(t["name"], t["owner"]) for t in ch2["tags"]])
+                    if t1_dict == t2_dict:
+                        return True
+    return False
 
 
 if __name__ == '__main__':
