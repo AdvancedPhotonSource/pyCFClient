@@ -21,6 +21,7 @@ from glob import glob
 from channelfinder import ChannelFinderClient
 from channelfinder._conf import basecfg
 
+
 def getArgsFromFilename(completeFilePath):
     fileName = os.path.split(os.path.normpath(completeFilePath))[1]
     pattern4Hostname = '(\S+?)\.\S+'
@@ -37,6 +38,7 @@ def getArgsFromFilename(completeFilePath):
         iocName = None
     return hostName, iocName
 
+
 def getPVNames(completeFilePath, pattern=None):
     try:
         f = open(completeFilePath)
@@ -52,8 +54,9 @@ def getPVNames(completeFilePath, pattern=None):
         if f:
             f.close()
 
+
 def updateChannelFinder(pvNames, hostName, iocName, time, owner,
-                        service=None, username=None, password=None):
+                        service=None, username=None, password=None, pvStatus=u'Unknown'):
     '''
     pvNames = list of pvNames 
     ([] permitted will effectively remove the hostname, iocname from all channels)
@@ -85,18 +88,18 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                               owner=owner,
                                               hostName=hostName,
                                               iocName=iocName,
-                                              pvStatus=u'Active',
+                                              pvStatus=pvStatus,
                                               time=time))
                 pvNames.remove(ch['name'])
             elif pvNames == None or ch['name'] not in pvNames:
-                '''Orphan the channel : mark as inactive, keep the old hostName and iocName'''
-                oldHostName = [ prop[u'value'] for prop in ch[u'properties'] if prop[u'name'] == u'hostName'][0]
-                oldIocName = [ prop[u'value'] for prop in ch[u'properties'] if prop[u'name'] == u'iocName'][0]
+                '''Orphan the channel : mark as obsolete, keep the old hostName and iocName'''
+                oldHostName = [prop[u'value'] for prop in ch[u'properties'] if prop[u'name'] == u'hostName'][0]
+                oldIocName = [prop[u'value'] for prop in ch[u'properties'] if prop[u'name'] == u'iocName'][0]
                 channels.append(updateChannel(ch,
                                               owner=owner,
                                               hostName=oldHostName,
                                               iocName=oldIocName,
-                                              pvStatus=u'Inactive',
+                                              pvStatus=u'Obsolete',
                                               time=time))
     # now pvNames contains a list of pv's new on this host/ioc
     for pv in pvNames:
@@ -107,7 +110,7 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                           chOwner=owner,
                                           hostName=hostName,
                                           iocName=iocName,
-                                          pvStatus=u'Active',
+                                          pvStatus=pvStatus,
                                           time=time))
         elif ch[0] != None:
             '''update existing channel: exists but with a different hostName and/or iocName'''
@@ -115,9 +118,10 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                           owner=owner,
                                           hostName=hostName,
                                           iocName=iocName,
-                                          pvStatus=u'Active',
+                                          pvStatus=pvStatus,
                                           time=time))
     client.set(channels=channels)
+
 
 def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactive', time=None):
     '''
@@ -141,6 +145,24 @@ def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactiv
     channel[u'properties'] = properties
     return channel
 
+
+def updateChannelStatus(iocName, owner, status=u'Unknown', service=None, username=None, password=None):
+    try:
+        client = ChannelFinderClient(BaseURL=service, username=username, password=password)
+    except:
+        raise RuntimeError('Unable to create a valid webResourceClient')
+
+    if status.lower() == "up":
+        status = u"Active"
+    elif status.lower() == "down":
+        status = u"Inactive"
+
+    channelsList = client.findByArgs([(u'iocName', iocName)])
+    if len(channelsList) > 0:
+        client.update(property={'name': "iocName", 'owner': owner, 'value': status},
+                      channelNames=[ch['name'] for ch in channelsList])
+
+
 def createChannel(chName, chOwner, hostName=None, iocName=None, pvStatus=u'Inactive', time=None):
     '''
     Helper to create a channel object with the required properties
@@ -156,6 +178,7 @@ def createChannel(chName, chOwner, hostName=None, iocName=None, pvStatus=u'Inact
         ch[u'properties'].append({u'name' : u'time', u'owner':chOwner, u'value' : time}) 
     return ch
 
+
 def checkPropertiesExist(client, propOwner):
     '''
     Checks if the properties used by dbUpdate are present if not it creates them
@@ -167,7 +190,8 @@ def checkPropertiesExist(client, propOwner):
                 client.set(property={u'name' : propName, u'owner' : propOwner})
             except Exception as e:
                 print('Failed to create the property',propName)
-                print('CAUSE:',e.message)
+                print('CAUSE:', e)
+
 
 def ifNoneReturnDefault(object, default):
     '''
@@ -177,6 +201,7 @@ def ifNoneReturnDefault(object, default):
         return default
     else:
         return object
+
 
 def mainRun(opts, args):
     '''
@@ -212,6 +237,7 @@ def mainRun(opts, args):
                             username=__getDefaultConfig('username',opts.username),
                             password=__getDefaultConfig('password',opts.password))
             
+
 def __getDefaultConfig(arg, value):
         if value is None:
             try:
@@ -220,7 +246,8 @@ def __getDefaultConfig(arg, value):
                 return None
         else:
             return value
-        
+
+
 def main():
     usage = "usage: %prog [options] filename"
     parser = OptionParser(usage=usage)
@@ -254,13 +281,15 @@ def main():
         parser.error('Please specify a file')
     mainRun(opts, args)
 
+
 def getPassword(option, opt_str, value, parser):
     '''
     Simple method to prompt user for password
     TODO do not show the password.
     '''
     parser.values.password = getpass()        
-            
+
+
 if __name__ == '__main__':
     main()
     pass
