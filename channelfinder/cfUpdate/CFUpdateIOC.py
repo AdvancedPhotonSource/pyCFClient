@@ -84,24 +84,18 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
         for ch in previousChannelsList:
             if pvNames != None and ch['name'] in pvNames:
                 ''''''
-                channels.append(updateChannel(ch,
-                                              owner=owner,
-                                              hostName=hostName,
-                                              iocName=iocName,
-                                              pvStatus=pvStatus,
-                                              time=time))
                 if not isChannelEqual(ch, updateChannel(ch,
                                                        owner=owner,
                                                        hostName=hostName,
                                                        iocName=iocName,
-                                                       pvStatus=u'',
+                                                       pvStatus=pvStatus,
                                                        time=time)):
 
                     channels.append(updateChannel(ch,
                                                   owner=owner,
                                                   hostName=hostName,
                                                   iocName=iocName,
-                                                  pvStatus=u'',
+                                                  pvStatus=pvStatus,
                                                   time=time))
                 pvNames.remove(ch['name'])
             elif pvNames == None or ch['name'] not in pvNames:
@@ -173,7 +167,7 @@ def updateChannelStatus(iocName, owner, status=u'Unknown', service=None, usernam
 
     channelsList = client.findByArgs([(u'iocName', iocName)])
     if len(channelsList) > 0:
-        client.update(property={'name': "iocName", 'owner': owner, 'value': status},
+        client.update(property={'name': "pvStatus", 'owner': owner, 'value': status},
                       channelNames=[ch['name'] for ch in channelsList])
 
 
@@ -191,6 +185,7 @@ def createChannel(chName, chOwner, hostName=None, iocName=None, pvStatus=u'Inact
     if time:
         ch[u'properties'].append({u'name' : u'time', u'owner':chOwner, u'value' : time}) 
     return ch
+
 
 def checkPropertiesExist(client, propOwner):
     '''
@@ -214,6 +209,7 @@ def ifNoneReturnDefault(object, default):
         return default
     else:
         return object
+
 
 def mainRun(opts, args):
     '''
@@ -311,24 +307,24 @@ def isChannelEqual(ch1, ch2):
     :return:
     '''
     pFlag = False
-    if ch1["name"] == ch2["name"] and ch1["owner"] == ch2["owner"]:
-        if len(ch1.get("properties",[])) == 0 and len(ch2.get("properties",[])) == 0:
+    if ch1["name"] == ch2["name"]:
+        if len(ch1.get("properties", [])) == 0 and len(ch2.get("properties",[])) == 0:
             pFlag = True
         else:
             if len(ch1["properties"]) == len(ch2["properties"]):
-                p1_dict = dict([(p["name"],(p["owner"],p["value"])) for p in ch1["properties"]])
-                p2_dict = dict([(p["name"], (p["owner"], p["value"])) for p in ch2["properties"]])
+                p1_dict = dict([(p["name"], p["value"]) for p in ch1["properties"]])
+                p2_dict = dict([(p["name"], p["value"]) for p in ch2["properties"]])
                 if p1_dict == p2_dict:
                     pFlag = True
 
         if pFlag:
-            if len(ch1.get("tags",[])) == 0 and len(ch2.get("tags",[])) == 0:
+            if len(ch1.get("tags", [])) == 0 and len(ch2.get("tags", [])) == 0:
                 return True
             else:
                 if len(ch1["tags"]) == len(ch2["tags"]):
-                    t1_dict = dict([(t["name"],t["owner"]) for t in ch1["tags"]])
-                    t2_dict = dict([(t["name"], t["owner"]) for t in ch2["tags"]])
-                    if t1_dict == t2_dict:
+                    t1_set = set([t["name"] for t in ch1["tags"]])
+                    t2_set = set([t["name"] for t in ch2["tags"]])
+                    if t1_set == t2_set:
                         return True
     return False
 
