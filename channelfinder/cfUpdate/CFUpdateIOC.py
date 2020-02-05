@@ -169,6 +169,24 @@ def updateChannelStatus(iocName, owner, status=u'Unknown', service=None, usernam
     if len(channelsList) > 0:
         client.update(property={'name': "pvStatus", 'owner': owner, 'value': status},
                       channelNames=[ch['name'] for ch in channelsList])
+        return True
+    else:
+        return False
+
+
+def updateChannelHostname(iocName, owner, hostName=u'Unknown', service=None, username=None, password=None):
+    try:
+        client = ChannelFinderClient(BaseURL=service, username=username, password=password)
+    except:
+        raise RuntimeError('Unable to create a valid webResourceClient')
+
+    channelsList = client.findByArgs([(u'iocName', iocName)])
+    if len(channelsList) > 0:
+        client.update(property={'name': "hostName", 'owner': owner, 'value': hostName},
+                      channelNames=[ch['name'] for ch in channelsList])
+        return True
+    else:
+        return False
 
 
 def createChannel(chName, chOwner, hostName=None, iocName=None, pvStatus=u'Inactive', time=None):
