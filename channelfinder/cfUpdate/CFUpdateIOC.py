@@ -71,8 +71,10 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
     username = channelfinder username
     password = channelfinder password
     '''
-    if hostName == None or iocName == None:
-        raise RuntimeError('missing hostName or iocName')
+    if iocName == None:
+        raise RuntimeError('missing iocName')
+    if not hostName or hostName.lower() == "unknown":
+        hostName = getHostName([iocName], service).get(iocName, "Unknown")
     channels = []
     try:
         client = ChannelFinderClient(BaseURL=service, username=username, password=password)
@@ -131,6 +133,23 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
         client.set(channels=channels)
 
 
+def getHostName(iocs, serviceURL):
+    try:
+        client = ChannelFinderClient(BaseURL=serviceURL)
+    except:
+        raise RuntimeError('Unable to create a valid webResourceClient')
+    ioc_hostname_dict = dict()
+    for ioc in iocs:
+        hostname = "Unknown"
+        ch = client.find(property=[("iocName", ioc)], size=1)
+        for prop in ch.get("properties", []):
+            if prop.get("name", "") == "hostName":
+                hostname = prop.get("value")
+        ioc_hostname_dict[ioc] = hostname
+
+    return ioc_hostname_dict
+
+
 def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactive', time=None):
     '''
     Helper to update a channel object so as to not affect the existing properties
@@ -180,6 +199,8 @@ def updateChannelHostname(iocName, owner, hostName=u'Unknown', service=None, use
     except:
         raise RuntimeError('Unable to create a valid webResourceClient')
 
+    if hostName == "":
+        hostName = u'Unknown'
     channelsList = client.findByArgs([(u'iocName', iocName)])
     if len(channelsList) > 0:
         client.update(property={'name': "hostName", 'owner': owner, 'value': hostName},
