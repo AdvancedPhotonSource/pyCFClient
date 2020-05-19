@@ -142,10 +142,11 @@ def getHostName(iocs, serviceURL):
     for ioc in iocs:
         hostname = "Unknown"
         ch = client.find(property=[("iocName", ioc)], size=1)
-        for prop in ch.get("properties", []):
-            if prop.get("name", "") == "hostName":
-                hostname = prop.get("value")
-        ioc_hostname_dict[ioc] = hostname
+        if ch:
+            for prop in ch[0].get("properties", []):
+                if prop.get("name", "") == "hostName":
+                    hostname = prop.get("value")
+            ioc_hostname_dict[ioc] = hostname
 
     return ioc_hostname_dict
 
