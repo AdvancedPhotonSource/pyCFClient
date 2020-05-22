@@ -17,6 +17,7 @@ import re
 from optparse import OptionParser
 from getpass import getpass
 from glob import glob
+import time
 
 from channelfinder import ChannelFinderClient
 from channelfinder._conf import basecfg
@@ -174,7 +175,7 @@ def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactiv
     return channel
 
 
-def updateChannelStatus(iocName, owner, status=u'Unknown', service=None, username=None, password=None):
+def updateChannelStatus(iocName, owner, time, status=u'Unknown', service=None, username=None, password=None):
     try:
         client = ChannelFinderClient(BaseURL=service, username=username, password=password)
     except:
@@ -188,6 +189,8 @@ def updateChannelStatus(iocName, owner, status=u'Unknown', service=None, usernam
     channelsList = client.findByArgs([(u'iocName', iocName)])
     if len(channelsList) > 0:
         client.update(property={'name': "pvStatus", 'owner': owner, 'value': status},
+                      channelNames=[ch['name'] for ch in channelsList])
+        client.update(property={'name': "time", 'owner': owner, 'value': time},
                       channelNames=[ch['name'] for ch in channelsList])
         return True
     else:
@@ -338,7 +341,6 @@ def getPassword(option, opt_str, value, parser):
     parser.values.password = getpass()        
 
 
-
 def isChannelEqual(ch1, ch2):
     '''
 
@@ -367,6 +369,14 @@ def isChannelEqual(ch1, ch2):
                     if t1_set == t2_set:
                         return True
     return False
+
+
+def isTimeFormat(input):
+    try:
+        time.strptime(input, "%Y-%m-%d_%H:%M:%S")
+        return True
+    except ValueError:
+        return False
 
 
 if __name__ == '__main__':
