@@ -566,7 +566,7 @@ class ChannelFinderClient(object):
         # the channels with the old property are also updated
 
         update(tag = Tag, originalTagName = String)
-        >>> update(tab = {'name':'newTagName','owner':'tagOwner'}, originalTagName = 'oldTagName')
+        >>> update(tag = {'name':'newTagName','owner':'tagOwner'}, originalTagName = 'oldTagName')
         # rename the tag 'oldTagName' to 'newTagName'
         # the channel with the old tag are also updated
         """

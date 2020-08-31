@@ -47,7 +47,7 @@ class CFPropertyManagerTest(unittest.TestCase):
         Tests bad regex error raise.
         '''
         fo = open("cf-property-manager-test-bad-cfg", "w+")
-        fo.write("property=[");
+        fo.write("property=[")
         fo.close()
         cfglines=cfglines = CFPropertyManager.readConfiguration("cf-property-manager-test-bad-cfg")
         for properties in cfglines:

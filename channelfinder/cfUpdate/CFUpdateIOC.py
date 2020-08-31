@@ -343,13 +343,13 @@ def getPassword(option, opt_str, value, parser):
 
 def isChannelEqual(ch1, ch2):
     '''
-
+    To verify two channels entries are same.
     :param ch1:
     :param ch2:
-    :return:
+    :return: True if ch1 and ch2 are same, else False
     '''
     pFlag = False
-    if ch1["name"] == ch2["name"]:
+    if ch1["name"] == ch2["name"] and ch1["owner"] == ch2["owner"]:
         if len(ch1.get("properties", [])) == 0 and len(ch2.get("properties",[])) == 0:
             pFlag = True
         else:
