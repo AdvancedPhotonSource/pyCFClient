@@ -41,6 +41,7 @@ def getArgsFromFilename(completeFilePath):
 
 
 def getPVNames(completeFilePath, pattern=None):
+    f = None
     try:
         f = open(completeFilePath)
         pvNames = f.read().splitlines()
