@@ -23,7 +23,7 @@ extras_require = {
 
 setup(
     name='channelfinder',
-    version='3.0.0',
+    version='3.1.0',
     description='Python ChannelFinder Client Lib',
     author='Kunal Shroff',
     author_email='shroffk@bnl.gov',
