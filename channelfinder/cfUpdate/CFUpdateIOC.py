@@ -72,6 +72,9 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
     service = channelfinder service URL
     username = channelfinder username
     password = channelfinder password
+    Note: A porperty's owner is the person who created the property in 'properties' index table.
+    To change a property's owner , change(update()) its owner in 'properties' index table. The effect will
+    cascade to all the channels that have this property. Same is true for tags.
     '''
     if iocName == None:
         raise RuntimeError('missing iocName')
@@ -82,25 +85,27 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
         client = ChannelFinderClient(BaseURL=service, username=username, password=password)
     except:
         raise RuntimeError('Unable to create a valid webResourceClient')
-    checkPropertiesExist(client, owner)
+    checkPropertiesExist(client, username)
     previousChannelsList = client.findByArgs([(u'hostName', hostName), (u'iocName', iocName)])
     if previousChannelsList != None:
         for ch in previousChannelsList:
             if pvNames != None and ch['name'] in pvNames:
                 ''''''
                 if not isChannelEqual(ch, updateChannel(ch,
-                                                       owner=owner,
-                                                       hostName=hostName,
-                                                       iocName=iocName,
-                                                       pvStatus=pvStatus,
-                                                       time=time)):
+                                                        owner=owner,
+                                                        hostName=hostName,
+                                                        iocName=iocName,
+                                                        pvStatus=pvStatus,
+                                                        time=time,
+                                                        username=username)):
 
                     channels.append(updateChannel(ch,
                                                   owner=owner,
                                                   hostName=hostName,
                                                   iocName=iocName,
                                                   pvStatus=pvStatus,
-                                                  time=time))
+                                                  time=time,
+                                                  username=username))
                 pvNames.remove(ch['name'])
             elif pvNames == None or ch['name'] not in pvNames:
                 '''Orphan the channel : mark as obsolete, keep the old hostName and iocName'''
@@ -111,7 +116,8 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                               hostName=oldHostName,
                                               iocName=oldIocName,
                                               pvStatus=u'Obsolete',
-                                              time=time))
+                                              time=time,
+                                              username=username))
     # now pvNames contains a list of pv's new on this host/ioc
     for pv in pvNames:
         ch = client.findByArgs([('~name',pv)])
@@ -122,7 +128,8 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                           hostName=hostName,
                                           iocName=iocName,
                                           pvStatus=pvStatus,
-                                          time=time))
+                                          time=time,
+                                          username=username))
         elif ch[0] != None:
             '''update existing channel: exists but with a different hostName and/or iocName'''
             channels.append(updateChannel(ch[0],
@@ -130,7 +137,8 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
                                           hostName=hostName,
                                           iocName=iocName,
                                           pvStatus=pvStatus,
-                                          time=time))
+                                          time=time,
+                                          username=username))
     if channels:
         client.set(channels=channels)
 
@@ -153,30 +161,32 @@ def getHostName(iocs, serviceURL):
     return ioc_hostname_dict
 
 
-def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactive', time=None):
+def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactive', time=None, username=None):
     '''
     Helper to update a channel object so as to not affect the existing properties
     '''
-    
-    # properties list devoid of hostName and iocName properties
+    if not username:
+        username = owner
+    if channel["owner"] != owner:
+        channel["owner"] = owner
     if channel[u'properties']:
         properties = [property for property in channel[u'properties']
                     if property[u'name'] != u'hostName' and property[u'name'] != u'iocName' and property[u'name'] != u'pvStatus']
     else:
         properties = []
     if hostName != None:
-        properties.append({u'name' : u'hostName', u'owner':owner, u'value' : hostName})
+        properties.append({u'name' : u'hostName', u'owner': username, u'value' : hostName})
     if iocName != None:
-        properties.append({u'name' : u'iocName', u'owner':owner, u'value' : iocName})
+        properties.append({u'name' : u'iocName', u'owner':username, u'value' : iocName})
     if pvStatus:
-        properties.append({u'name' : u'pvStatus', u'owner':owner, u'value' : pvStatus})
+        properties.append({u'name' : u'pvStatus', u'owner':username, u'value' : pvStatus})
     if time:
-        properties.append({u'name' : u'time', u'owner':owner, u'value' : time}) 
+        properties.append({u'name' : u'time', u'owner':username, u'value' : time})
     channel[u'properties'] = properties
     return channel
 
 
-def updateChannelStatus(iocName, owner, time, status=u'Unknown', service=None, username=None, password=None):
+def updateChannelStatus(iocName, service, username, password, time, status=u'Unknown'):
     try:
         client = ChannelFinderClient(BaseURL=service, username=username, password=password)
     except:
@@ -189,16 +199,16 @@ def updateChannelStatus(iocName, owner, time, status=u'Unknown', service=None, u
 
     channelsList = client.findByArgs([(u'iocName', iocName)])
     if len(channelsList) > 0:
-        client.update(property={'name': "pvStatus", 'owner': owner, 'value': status},
+        client.update(property={'name': "pvStatus", 'owner': username, 'value': status},
                       channelNames=[ch['name'] for ch in channelsList])
-        client.update(property={'name': "time", 'owner': owner, 'value': time},
+        client.update(property={'name': "time", 'owner': username, 'value': time},
                       channelNames=[ch['name'] for ch in channelsList])
         return True
     else:
         return False
 
 
-def updateChannelHostname(iocName, owner, hostName=u'Unknown', service=None, username=None, password=None):
+def updateChannelHostname(iocName, service, username, password, hostName=u'Unknown'):
     try:
         client = ChannelFinderClient(BaseURL=service, username=username, password=password)
     except:
@@ -208,26 +218,28 @@ def updateChannelHostname(iocName, owner, hostName=u'Unknown', service=None, use
         hostName = u'Unknown'
     channelsList = client.findByArgs([(u'iocName', iocName)])
     if len(channelsList) > 0:
-        client.update(property={'name': "hostName", 'owner': owner, 'value': hostName},
+        client.update(property={'name': "hostName", 'owner': username, 'value': hostName},
                       channelNames=[ch['name'] for ch in channelsList])
         return True
     else:
         return False
 
 
-def createChannel(chName, chOwner, hostName=None, iocName=None, pvStatus=u'Inactive', time=None):
+def createChannel(chName, chOwner, hostName=None, iocName=None, pvStatus=u'Inactive', time=None, username=None):
     '''
     Helper to create a channel object with the required properties
     '''
+    if not username:
+        username = chOwner
     ch = {u'name' : chName, u'owner' : chOwner, u'properties' : []}
-    if hostName != None:
-        ch[u'properties'].append({u'name' : u'hostName', u'owner':chOwner, u'value' : hostName})
-    if iocName != None:
-        ch[u'properties'].append({u'name' : u'iocName', u'owner':chOwner, u'value' : iocName})
+    if hostName:
+        ch[u'properties'].append({u'name' : u'hostName', u'owner':username, u'value' : hostName})
+    if iocName:
+        ch[u'properties'].append({u'name' : u'iocName', u'owner':username, u'value' : iocName})
     if pvStatus:
-        ch[u'properties'].append({u'name' : u'pvStatus', u'owner':chOwner, u'value' : pvStatus})
+        ch[u'properties'].append({u'name' : u'pvStatus', u'owner':username, u'value' : pvStatus})
     if time:
-        ch[u'properties'].append({u'name' : u'time', u'owner':chOwner, u'value' : time}) 
+        ch[u'properties'].append({u'name' : u'time', u'owner':username, u'value' : time})
     return ch
 
 
