@@ -72,7 +72,7 @@ def updateChannelFinder(pvNames, hostName, iocName, time, owner,
     service = channelfinder service URL
     username = channelfinder username
     password = channelfinder password
-    Note: A porperty's owner is the person who created the property in 'properties' index table.
+    Note: A property's owner is the person who created the property in 'properties' index table.
     To change a property's owner , change(update()) its owner in 'properties' index table. The effect will
     cascade to all the channels that have this property. Same is true for tags.
     '''
