@@ -1,5 +1,5 @@
 package:
-  name: py_cf_client
+  name: channelfinder
   version: {{ environ.get('GIT_DESCRIBE_TAG', '0.0') }}
 
 
@@ -13,17 +13,20 @@ build:
 
 requirements:
   build:
-    - python >=3.6
+    - pip
+    - python =3.8
   run:
-    - python >=3.6
-    - requests =2.23.0
+    - python =3.8
+    - requests >=2.15.0
+    - simplejson >=3.10.0
     - urllib3 >=1.22
+
 
 test:
   imports:
     - channelfinder
 
 about:
-  home: https://git.aps.anl.gov/C2/conda/c2-tool
-  summary: Installs python client for Channelfinder server.
+  home: https://github.com/AdvancedPhotonSource/pyCFClient.git
+  summary: Channelfinder client for python.
 
