@@ -18,6 +18,7 @@ from optparse import OptionParser
 from getpass import getpass
 from glob import glob
 import time
+import copy
 
 from channelfinder import ChannelFinderClient
 from channelfinder._conf import basecfg
@@ -165,13 +166,14 @@ def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactiv
     '''
     Helper to update a channel object so as to not affect the existing properties
     '''
+    updated_channel = copy.deepcopy(channel)
     if not username:
         username = owner
-    if channel["owner"] != owner:
-        channel["owner"] = owner
-    if channel[u'properties']:
-        properties = [property for property in channel[u'properties']
-                    if property[u'name'] != u'hostName' and property[u'name'] != u'iocName' and property[u'name'] != u'pvStatus']
+    if updated_channel["owner"] != owner:
+        updated_channel["owner"] = owner
+    if updated_channel[u'properties']:
+        properties = [prop for prop in updated_channel[u'properties']
+                    if prop[u'name'] != u'hostName' and prop[u'name'] != u'iocName' and prop[u'name'] != u'pvStatus' and prop[u'name'] != u'time' ]
     else:
         properties = []
     if hostName != None:
@@ -182,8 +184,8 @@ def updateChannel(channel, owner, hostName=None, iocName=None, pvStatus='Inactiv
         properties.append({u'name' : u'pvStatus', u'owner':username, u'value' : pvStatus})
     if time:
         properties.append({u'name' : u'time', u'owner':username, u'value' : time})
-    channel[u'properties'] = properties
-    return channel
+    updated_channel[u'properties'] = properties
+    return updated_channel
 
 
 def updateChannelStatus(iocName, service, username, password, time, status=u'Unknown'):
